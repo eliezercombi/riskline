@@ -66,6 +66,18 @@ BINANCE_KEY=... BINANCE_SECRET=... node server/bridge.mjs
 
 It prints a token. Enter the bridge address and the token on the phone page under **Account**. From then on a tap on the glasses places market orders, and stops and targets become OCO orders on the exchange. The bridge keeps the key on your machine, signs every request itself, takes one request at a time, and refuses to start against anything but the testnet.
 
+## The demo video is reproducible
+
+`scripts/record.mjs` plays `scripts/story.json` (captions and touchpad actions) through the simulator's automation API, saves the glasses framebuffer after every step and builds the MP4 with ffmpeg:
+
+```bash
+npm run dev
+evenhub-simulator "http://localhost:5173/?reset=1&watch=BTCUSDT,ETHUSDT&sizes=100,500&say=sell%20half" --automation-port 9898
+npm run demo:record
+```
+
+Nobody can speak into an automated run, so each `say=` in the address stands in for one voice transcript. Parsing, the confirmation and the order are the real path, and the video says so on screen. Prices are live, so every recording shows different numbers.
+
 ## How it is built
 
 ```
@@ -74,7 +86,7 @@ src/ui        pages (576x288 layouts), controller, display adapter, event mappin
 src/market    Binance public data: mini-ticker stream with REST fallback
 src/companion.ts  the phone page: display mirror, watchlist, defaults, venue
 server/       optional testnet bridge, Node built-ins only
-test/         42 tests, run with `npm test`
+test/         47 tests, run with `npm test`
 ```
 
 - **Layouts are data.** A page is a list of boxes; the display adapter turns it into SDK calls. The first page uses `createStartUpPageContainer`, a new layout uses `rebuildPageContainer`, and a price tick only sends `textContainerUpgrade` for the lines that changed. Calls are serialised, bursts collapse to the newest page, and each call has a timeout.
@@ -85,7 +97,7 @@ test/         42 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing, the bridge protocol and the command grammar: 42 automated tests.
+- Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing, the bridge protocol, the command grammar and the demo recorder: 47 automated tests.
 - The whole app in a desktop browser against live Binance data, in preview mode.
 - TODO before submission: simulator run and device run are recorded here once done.
 

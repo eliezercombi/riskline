@@ -10,8 +10,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node --test \"test/*.test.ts\"",
+    "test": "node --test \"test/*.test.ts\" \"test/*.test.mjs\"",
     "simulate": "evenhub-simulator http://localhost:5173",
+    "demo:record": "node scripts/record.mjs scripts/story.json",
     "pack": "npm run build && evenhub pack app.json dist --sdk-ver 0.0.16 -o riskline.ehpk"
   },
   "dependencies": {

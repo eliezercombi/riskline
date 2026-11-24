@@ -87,6 +87,7 @@ const saved = load()
 
 // Optional start-up overrides for repeatable test and demo runs, e.g.
 //   ?reset=1&watch=BTCUSDT,ETHUSDT&sizes=100,500&stop=0.05&target=0.1&alert=0.03   (percentages)
+//   &say=sell%20half   scripted voice transcripts for automated recordings, see `scripted` below
 {
   const query = new URLSearchParams(location.search)
   const percent = (name: string): number | null => {
@@ -137,8 +138,13 @@ function save(): void {
 // Push-to-talk: PCM frames from the glasses are collected while the touchpad is held.
 const pcm: Uint8Array[] = []
 let capturing = false
+// For automated recordings, where nobody can speak into the simulator: each `say`
+// in the address stands in for one transcript, in order. What happens after the
+// transcript (parsing, confirmation, the order itself) is the real path.
+const scripted = new URLSearchParams(location.search).getAll('say').map((line) => line.trim()).filter(Boolean)
+
 const voice: Voice = {
-  available: () => Boolean(saved.stt?.url),
+  available: () => scripted.length > 0 || Boolean(saved.stt?.url),
   start: () => {
     pcm.length = 0
     capturing = true
@@ -147,6 +153,7 @@ const voice: Voice = {
   stop: async () => {
     capturing = false
     await bridge.audioControl(false).catch(() => false)
+    if (scripted.length) return scripted.shift() as string
     if (!pcm.length || !saved.stt) return ''
     return transcribe(wavFromPcm(pcm), saved.stt)
   },
@@ -288,4 +295,4 @@ if (remote) {
 setInterval(() => void refreshHistory(), 10 * 60 * 1000)
 // Redraw on a slow clock too, so "waiting for prices" appears when the feed goes quiet.
 setInterval(() => app.render(), 5000)
-log(`ready (${preview ? 'browser preview' : 'glasses bridge'})`)
+log(`ready (${preview ? 'browser preview' : 'glasses bridge'}${scripted.length ? `, ${scripted.length} scripted transcripts` : ''})`)
