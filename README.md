@@ -93,8 +93,9 @@ test/         48 tests, run with `npm test`
 - Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing, the bridge protocol, the command grammar and the demo recorder: 48 automated tests.
 - The whole app in a desktop browser against live Binance data, in preview mode.
 - The whole demo story in the Even Hub simulator 0.9.5, driven through its automation API on 24 November 2026: watch cards, buy with automatic stop and target, the action list, a scripted "sell half", the system menu and Flatten all. The app logged no errors during the run; the frames above and the demo video come from it.
+- Packaging: `npm run pack` type-checks, builds and stamps `riskline.ehpk` (89 KB) with the Even Hub CLI for SDK 0.0.16.
 
-Not done: the bridge has not been run against the exchange yet, voice has been exercised with typed, scripted and mocked transcripts but not with a live speech service, and nothing has been tested on physical glasses.
+Not done: the bridge has not been run against the exchange yet, voice has been exercised with typed, scripted and mocked transcripts but not with a live speech service, and nothing has been tested on physical glasses (the package has been built, not installed on a device).
 
 ## Limits
 
