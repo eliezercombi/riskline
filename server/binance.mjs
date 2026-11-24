@@ -62,7 +62,11 @@ export class BinanceTestnet {
   constructor({ key, secret, base = TESTNET, fetch: fetcher = fetch, now = Date.now }) {
     if (base !== TESTNET) throw new Error(`Refusing to use ${base}: this bridge only talks to ${TESTNET}`)
     if (!key || !secret) throw new Error('BINANCE_KEY and BINANCE_SECRET (Spot Testnet) are required')
-    Object.assign(this, { key, secret, base, fetcher, now })
+    this.key = key
+    this.secret = secret
+    this.base = base
+    this.fetcher = fetcher
+    this.now = now
   }
 
   async call(method, path, params = {}, signed = true) {
