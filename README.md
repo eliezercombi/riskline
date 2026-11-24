@@ -8,7 +8,7 @@ Built for the Heads Up hackathon, track **Exchanges & Stocks** (Binance).
 
 ![Riskline in the Even Hub simulator: a position with its stop and target, the action list, a buy confirmation, and the confirmation opened by saying "sell half"](docs/simulator.png)
 
-*Captured from the Even Hub simulator during the recorded demo run: paper trading on live Binance prices.*
+*Captured from the Even Hub simulator during the recorded demo run: paper trading on live Binance prices. [Watch the 64-second demo](docs/demo.mp4).*
 
 ## Read, then write
 
@@ -79,7 +79,7 @@ src/ui        pages (576x288 layouts), controller, display adapter, event mappin
 src/market    Binance public data: mini-ticker stream with REST fallback
 src/companion.ts  the phone page: display mirror, watchlist, defaults, venue
 server/       optional testnet bridge, Node built-ins only
-test/         47 tests, run with `npm test`
+test/         48 tests, run with `npm test`
 ```
 
 - **Layouts are data.** A page is a list of boxes; the display adapter turns it into SDK calls. The first page uses `createStartUpPageContainer`, a new layout uses `rebuildPageContainer`, and a price tick only sends `textContainerUpgrade` for the lines that changed. Calls are serialised, bursts collapse to the newest page, and each call has a timeout.
@@ -90,7 +90,7 @@ test/         47 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing, the bridge protocol, the command grammar and the demo recorder: 47 automated tests.
+- Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing, the bridge protocol, the command grammar and the demo recorder: 48 automated tests.
 - The whole app in a desktop browser against live Binance data, in preview mode.
 - The whole demo story in the Even Hub simulator 0.9.5, driven through its automation API on 24 November 2026: watch cards, buy with automatic stop and target, the action list, a scripted "sell half", the system menu and Flatten all. The app logged no errors during the run; the frames above and the demo video come from it.
 

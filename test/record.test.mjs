@@ -54,6 +54,26 @@ test('the recorder waits for the app and reports what the app logged', async () 
   assert.deepEqual((await play({ scenes: [{ caption: 'x' }] }, sim, { pause: noPause })).errors, ['[fetch] 500 http://localhost:8788/today'])
 })
 
+test('a slow step is waited for by the screen it ends on, not by the clock', async () => {
+  const log = [{ id: 1, level: 'log', message: '[riskline] ready' }, { id: 2, level: 'log', message: '[riskline] screen today' }]
+  let polls = 0
+  const sim = {
+    ping: async () => true,
+    input: async () => {},
+    frame: async () => Buffer.from(`picture ${log.length}`),
+    // The answer arrives a few polls after the release, the way a model call would.
+    console: async () => { polls += 1; if (polls === 6) log.push({ id: 3, level: 'log', message: '[riskline] screen draft' }); return log },
+  }
+  const { timeline } = await play({ scenes: [{ caption: 'Draft', actions: ['long_press_release'], expect: 'draft' }] }, sim, { pause: noPause })
+  assert.equal(timeline.at(-1).png.toString(), 'picture 3', 'the last picture is taken after the draft screen was logged')
+  assert.ok(polls >= 6)
+
+  const never = { ...sim, console: async () => log.slice(0, 2) }
+  await assert.rejects(() => play({ scenes: [{ caption: 'x', expect: 'result' }] }, never, { pause: noPause }), /never reached the "result" screen/)
+  const stale = { ...sim, console: async () => log }
+  await assert.rejects(() => play({ scenes: [{ caption: 'x', expect: 'draft' }] }, stale, { pause: noPause }), /never reached/, 'a screen logged before the scene does not count')
+})
+
 test('the simulator client speaks the automation API', async () => {
   const calls = []
   const fetcher = async (url, init = {}) => {

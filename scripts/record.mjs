@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Records the demo from the Even Hub simulator, so the video can be reproduced.
 //
-// A story is a list of scenes: a caption and some touchpad actions. The script
+// A story is a list of scenes: a caption, some touchpad actions and, for slow
+// steps, the screen to wait for ("expect"). The script
 // plays them through the simulator's automation API, saves the glasses
 // framebuffer after every step, and turns the frames into an MP4 with captions
 // using ffmpeg. Node built-ins only.
@@ -73,9 +74,26 @@ export async function play(story, sim, { pause = sleep, log = () => {} } = {}) {
     else timeline.push({ png, seconds, caption })
   }
 
+  // The console id reached so far, so that "expect" only sees what a scene itself caused.
+  let seen = 0
+  const drain = async () => {
+    const entries = await sim.console()
+    for (const entry of entries) seen = Math.max(seen, Number(entry.id) || 0)
+  }
+  /** Wait until the app logs that it reached a screen. Slow steps (a model, an API) take as long as they take. */
+  const reached = async (screen) => {
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const fresh = (await sim.console()).filter((entry) => (Number(entry.id) || 0) > seen)
+      if (fresh.some((entry) => String(entry.message).includes(`screen ${screen}`))) return
+      await pause(250)
+    }
+    throw new Error(`The app never reached the "${screen}" screen`)
+  }
+
   for (const scene of story.scenes) {
     const caption = scene.caption ?? ''
     log(`scene: ${caption}`)
+    await drain()
     for (const action of scene.actions ?? []) {
       if (typeof action === 'object') {
         await pause(action.wait ?? 0)
@@ -85,6 +103,7 @@ export async function play(story, sim, { pause = sleep, log = () => {} } = {}) {
       await pause(step)
       keep(await sim.frame(), story.beat ?? 0.8, caption)
     }
+    if (scene.expect) await reached(scene.expect)
     await pause(scene.settle ?? 600)
     keep(await sim.frame(), scene.hold ?? 2.5, caption)
   }

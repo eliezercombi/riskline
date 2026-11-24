@@ -5,22 +5,117 @@
   "outro": "github.com/eliezercombi/riskline",
   "outroNote": "Binance market data  ·  Spot Testnet bridge  ·  voice",
   "ready": "[riskline] ready",
-  "launch": "http://localhost:5173/?reset=1&watch=BTCUSDT,ETHUSDT&sizes=100,500&say=sell%20half",
+  "launch": "http://127.0.0.1:5173/?reset=1&watch=BTCUSDT,ETHUSDT&sizes=100,500&say=sell%20half",
   "step": 500,
   "scenes": [
-    { "caption": "Live prices from Binance. No position yet, so the card shows the market.", "hold": 3.5 },
-    { "caption": "Swipe to the next symbol, and back.", "actions": ["down", { "wait": 900 }, "up"], "hold": 1.5 },
-    { "caption": "Tap for the actions that make sense right now.", "actions": ["click"], "hold": 3 },
-    { "caption": "Buy 100 USDT. The stop, the target and the risk are spelled out before anything is sent.", "actions": ["click"], "hold": 5 },
-    { "caption": "Tap to confirm.", "actions": ["click"], "settle": 1500, "hold": 2 },
-    { "caption": "Every new position starts with a stop and a target. The gauge shows where the price sits between them.", "actions": [{ "wait": 2300 }], "hold": 5.5 },
-    { "caption": "Tap again: with a position open, the list leads with ways to cut risk.", "actions": ["click"], "hold": 4.5 },
-    { "caption": "Double-tap to go back.", "actions": ["double_click"], "hold": 1.2 },
-    { "caption": "Hold the touchpad and say \"sell half\". (No microphone in an automated run: this transcript is scripted.)", "actions": ["long_press"], "hold": 3.5 },
-    { "caption": "Speech never sends an order by itself. It opens the same confirmation a tap would.", "actions": ["long_press_release"], "settle": 1800, "hold": 4.5 },
-    { "caption": "Tap to confirm: half is off.", "actions": ["click"], "settle": 1500, "hold": 2.2 },
-    { "caption": "The system menu works from any screen: flatten everything.", "actions": [{ "wait": 2300 }, "context_menu"], "hold": 3 },
-    { "caption": "Flatten all asks once, then closes every position and cancels its orders.", "actions": ["click"], "settle": 900, "hold": 4 },
-    { "caption": "Tap. Flat.", "actions": ["click"], "settle": 1800, "hold": 3 }
+    {
+      "caption": "Live prices from Binance. No position yet, so the card shows the market.",
+      "hold": 3.5
+    },
+    {
+      "caption": "Swipe to the next symbol, and back.",
+      "actions": [
+        "down",
+        {
+          "wait": 900
+        },
+        "up"
+      ],
+      "hold": 1.5
+    },
+    {
+      "caption": "Tap for the actions that make sense right now.",
+      "actions": [
+        "click"
+      ],
+      "hold": 3
+    },
+    {
+      "caption": "Buy 100 USDT. The stop, the target and the risk are spelled out before anything is sent.",
+      "actions": [
+        "click"
+      ],
+      "hold": 5
+    },
+    {
+      "caption": "Tap to confirm.",
+      "actions": [
+        "click"
+      ],
+      "settle": 1500,
+      "hold": 2
+    },
+    {
+      "caption": "Every new position starts with a stop and a target. The gauge shows where the price sits between them.",
+      "actions": [
+        {
+          "wait": 2300
+        }
+      ],
+      "hold": 5.5
+    },
+    {
+      "caption": "Tap again: with a position open, the list leads with ways to cut risk.",
+      "actions": [
+        "click"
+      ],
+      "hold": 4.5
+    },
+    {
+      "caption": "Double-tap to go back.",
+      "actions": [
+        "double_click"
+      ],
+      "hold": 1.2
+    },
+    {
+      "caption": "Hold the touchpad and say \"sell half\". (No microphone in an automated run: this transcript is scripted.)",
+      "actions": [
+        "long_press"
+      ],
+      "hold": 3.5
+    },
+    {
+      "caption": "Speech never sends an order by itself. It opens the same confirmation a tap would.",
+      "actions": [
+        "long_press_release"
+      ],
+      "settle": 1800,
+      "hold": 4.5
+    },
+    {
+      "caption": "Tap to confirm: half is off.",
+      "actions": [
+        "click"
+      ],
+      "settle": 1500,
+      "hold": 2.2
+    },
+    {
+      "caption": "The system menu works from any screen: flatten everything.",
+      "actions": [
+        {
+          "wait": 2300
+        },
+        "context_menu"
+      ],
+      "hold": 3
+    },
+    {
+      "caption": "Flatten all asks once, then closes every position and cancels its orders.",
+      "actions": [
+        "click"
+      ],
+      "settle": 900,
+      "hold": 4
+    },
+    {
+      "caption": "Tap. Flat.",
+      "actions": [
+        "click"
+      ],
+      "settle": 1800,
+      "hold": 3
+    }
   ]
 }

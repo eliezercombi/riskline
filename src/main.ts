@@ -119,6 +119,7 @@ const broker: Broker = paper ?? (remote as RemoteBroker)
 const alerts = new Alerts(saved.alerts)
 
 let companion: { update: (page: Page) => void } | null = null
+let shown = ''
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 
 // Everything worth keeping lives in localStorage, so an Android WebView that
@@ -174,6 +175,8 @@ const app = new App(saved.watch, {
   render: (page) => {
     display.show(page)
     companion?.update(page)
+    // One log line per screen change: enough to follow a session, and what the demo recorder waits on.
+    if (page.key !== shown) log(`screen ${(shown = page.key)}`)
   },
   exit: () => display.exit(),
   changed: save,
