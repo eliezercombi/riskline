@@ -1,0 +1,21 @@
+{
+  "package_id": "com.eliezercombi.riskline",
+  "edition": "202601",
+  "name": "Riskline",
+  "version": "0.1.0",
+  "min_sdk_version": "0.0.16",
+  "entrypoint": "index.html",
+  "permissions": [
+    {
+      "name": "network",
+      "desc": "Reads live prices, 24-hour history and trading increments from Binance public market data. No account or key is used.",
+      "whitelist": [
+        "https://data-api.binance.vision",
+        "https://api.binance.com",
+        "wss://data-stream.binance.vision",
+        "wss://stream.binance.com:9443"
+      ]
+    }
+  ],
+  "supported_languages": ["en"]
+}

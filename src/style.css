@@ -1,0 +1,44 @@
+/* Phone-side page. Dark surface and neutral text, matching the host app. */
+:root { color-scheme: dark; --bg: #232323; --panel: #2c2c2c; --line: #3a3a3a; --text: #e5e5e5; --dim: #9a9a9a; --green: #3dff8a; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; touch-action: manipulation; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+#app { max-width: 620px; margin: 0 auto; padding: 16px 16px 40px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+h1 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
+h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+section { margin-top: 18px; }
+.status { margin: 0; font-size: 13px; color: var(--dim); }
+.dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: #777; }
+.dot.live { background: var(--green); } .dot.polling { background: #ffc24a; } .dot.offline { background: #ff6b5e; }
+
+/* Mirror of the 576x288 glasses canvas. Text scales with the panel width. */
+.lens { position: relative; width: 100%; aspect-ratio: 2 / 1; container-type: inline-size; border-radius: 14px; background: #050805; box-shadow: inset 0 0 0 1px #17301f; overflow: hidden; }
+.box { position: absolute; overflow: hidden; white-space: pre; color: var(--green); font: 500 3.4722cqw/1.35 "Segoe UI", system-ui, sans-serif; text-shadow: 0 0 6px rgb(61 255 138 / .45); }
+.box.list { overflow-y: auto; white-space: normal; }
+.li { display: block; width: 100%; height: 13.9cqw; padding: 0 2cqw; border: 0; border-bottom: 1px solid #12301c; background: none; color: var(--green); font: inherit; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.li:disabled { cursor: default; }
+.li:not(:disabled):hover { background: #0d2416; }
+
+.pad { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+button { height: 42px; padding: 0 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+button:disabled { opacity: .4; cursor: default; }
+button:not(:disabled):active { background: #383838; }
+.fine { margin: 10px 0 0; font-size: 13px; color: var(--dim); }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.grid div { padding: 12px; border-radius: 12px; background: var(--panel); }
+.grid span { display: block; font-size: 12px; color: var(--dim); }
+.grid b { font-size: 17px; font-variant-numeric: tabular-nums; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 4px 4px 12px; border-radius: 999px; background: var(--panel); font-weight: 600; }
+.chip button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--dim); font-size: 18px; }
+form { display: flex; gap: 8px; }
+input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: #1c1c1c; color: var(--text); font: inherit; }
+input:focus { outline: 2px solid var(--green); outline-offset: 1px; }
+.fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; align-items: end; }
+.fields label { display: grid; gap: 4px; font-size: 13px; color: var(--dim); }
+.rows { margin: 0; padding: 0; list-style: none; }
+.rows li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.rows button { height: 32px; font-size: 13px; }
+.fields.stack { grid-template-columns: 1fr; margin-top: 12px; }
