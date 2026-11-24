@@ -148,7 +148,8 @@ const voice: Voice = {
   start: () => {
     pcm.length = 0
     capturing = true
-    void bridge.audioControl(true).catch((error) => log(`microphone: ${String(error)}`))
+    // A scripted transcript needs no audio, so the microphone stays closed.
+    if (!scripted.length) void bridge.audioControl(true).catch((error) => log(`microphone: ${String(error)}`))
   },
   stop: async () => {
     capturing = false

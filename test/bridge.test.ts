@@ -96,7 +96,7 @@ test('the ledger tracks only what the session opened', () => {
   assert.equal(out.qty, 0.01, 'cannot sell more than the session holds')
   assert.deepEqual(ledger.positions, {})
   assert.equal(ledger.realized, 5)
-  assert.deepEqual(eventsSince(ledger, 't2').map((e) => e.reason), ['manual', 'stop'])
+  assert.deepEqual(eventsSince(ledger, 't2').map((e: { reason: string }) => e.reason), ['manual', 'stop'])
   assert.equal(eventsSince(ledger, '').length, 4)
   assert.throws(() => recordSell(ledger, 'BTCUSDT', 1, 1), /No BTCUSDT position/)
 })

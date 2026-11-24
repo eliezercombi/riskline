@@ -6,16 +6,9 @@ Riskline is an app for Even Realities G2 glasses for people who trade on Binance
 
 Built for the Heads Up hackathon, track **Exchanges & Stocks** (Binance).
 
-```
-BTC   0.00816 held                                   PAPER   1/3
-61,254.0   ▲ +0.28% 24h
-P&L +5.41 USDT   +1.08%   +1.1R   risk-free
-▁▁▁▂▂▃▃▃▃▃▃▃▃▂█▆▆▅▃▃▂▂▂▂▂▂▂  24h
-Stop 60,000.0 (-2.0%)                     Target 62,483.6 (+2.0%)
-━━━━━━━━━━━━━●─────────────
+![Riskline in the Even Hub simulator: a position with its stop and target, the action list, a buy confirmation, and the confirmation opened by saying "sell half"](docs/simulator.png)
 
-tap: actions    swipe: next    double-tap: exit
-```
+*Captured from the Even Hub simulator during the recorded demo run: paper trading on live Binance prices.*
 
 ## Read, then write
 
@@ -99,9 +92,9 @@ test/         47 tests, run with `npm test`
 
 - Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing, the bridge protocol, the command grammar and the demo recorder: 47 automated tests.
 - The whole app in a desktop browser against live Binance data, in preview mode.
-- TODO before submission: simulator run and device run are recorded here once done.
+- The whole demo story in the Even Hub simulator 0.9.5, driven through its automation API on 24 November 2026: watch cards, buy with automatic stop and target, the action list, a scripted "sell half", the system menu and Flatten all. The app logged no errors during the run; the frames above and the demo video come from it.
 
-Not done: the bridge has not been run against the exchange yet, voice has been exercised with typed and mocked transcripts but not with a live speech service, and nothing has been tested on physical glasses.
+Not done: the bridge has not been run against the exchange yet, voice has been exercised with typed, scripted and mocked transcripts but not with a live speech service, and nothing has been tested on physical glasses.
 
 ## Limits
 
