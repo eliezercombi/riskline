@@ -98,8 +98,9 @@ export function sessionPage(view: View, index: number, count: number, note: stri
   let riskTop = ''
   let riskBottom = ''
   if (view.held) {
-    const stopLabel = view.stop !== undefined ? `Stop ${p(view.stop)} (${f.pct(view.toStop ?? 0, 1)})` : 'No stop'
-    const targetLabel = view.target !== undefined ? `Target ${p(view.target)} (${f.pct(view.toTarget ?? 0, 1)})` : 'no target'
+    const near = (ratio: number) => f.pct(ratio, Math.abs(ratio) < 0.01 ? 2 : 1)
+    const stopLabel = view.stop !== undefined ? `Stop ${p(view.stop)} (${near(view.toStop ?? 0)})` : 'No stop'
+    const targetLabel = view.target !== undefined ? `Target ${p(view.target)} (${near(view.toTarget ?? 0)})` : 'no target'
     riskTop = f.spread(stopLabel, targetLabel, INNER, measure)
     riskBottom = view.stop !== undefined && view.target !== undefined
       ? f.gauge(view.stop, view.price, view.target, cells)

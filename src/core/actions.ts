@@ -25,6 +25,9 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = { sizes: [100, 500], stopPct: 0.01, targetPct: 0.02, trailPct: 0.005, alertPct: 0.01 }
 
+/** A setting such as 0.01 as "1.0"; small values keep two decimals so 0.05% does not show as 0.1. */
+const share = (ratio: number): string => (ratio * 100).toFixed(ratio < 0.01 ? 2 : 1)
+
 export interface Action {
   id: string
   /** Menu label, at most 64 characters. */
@@ -97,8 +100,8 @@ export function actionsFor(view: View, ctx: Context): Action[] {
     if (view.stop === undefined || trail > view.stop) {
       out.push({
         id: 'trail',
-        label: `Trail stop to ${p(trail)} (-${(settings.trailPct * 100).toFixed(1)}%)`,
-        confirm: [`Trail the stop?`, `${view.base} stop ${view.stop === undefined ? 'none' : p(view.stop)} -> ${p(trail)}`, `${(settings.trailPct * 100).toFixed(1)}% under the current price`],
+        label: `Trail stop to ${p(trail)} (-${share(settings.trailPct)}%)`,
+        confirm: [`Trail the stop?`, `${view.base} stop ${view.stop === undefined ? 'none' : p(view.stop)} -> ${p(trail)}`, `${share(settings.trailPct)}% under the current price`],
         effect: 'reduce',
         run: async () => {
           await broker.protect(view.symbol, { stop: trail })
@@ -113,7 +116,7 @@ export function actionsFor(view: View, ctx: Context): Action[] {
       out.push({
         id: 'bracket',
         label: `Add stop ${p(stop)} / target ${p(target)}`,
-        confirm: [`Protect ${view.base}?`, `Stop ${p(stop)} (-${(settings.stopPct * 100).toFixed(1)}%)`, `Target ${p(target)} (+${(settings.targetPct * 100).toFixed(1)}%)`],
+        confirm: [`Protect ${view.base}?`, `Stop ${p(stop)} (-${share(settings.stopPct)}%)`, `Target ${p(target)} (+${share(settings.targetPct)}%)`],
         effect: 'reduce',
         run: async () => {
           await broker.protect(view.symbol, { stop, target })
@@ -154,7 +157,7 @@ export function actionsFor(view: View, ctx: Context): Action[] {
     const level = roundTo(px * (1 + (kind === 'above' ? 1 : -1) * settings.alertPct), rules.tick)
     out.push({
       id: `alert-${kind}`,
-      label: `Alert ${kind} ${p(level)} (${kind === 'above' ? '+' : '-'}${(settings.alertPct * 100).toFixed(1)}%)`,
+      label: `Alert ${kind} ${p(level)} (${kind === 'above' ? '+' : '-'}${share(settings.alertPct)}%)`,
       confirm: [`Set an alert?`, `${view.base} ${kind} ${p(level)}`, 'It fires once.'],
       effect: 'neutral',
       run: async () => {

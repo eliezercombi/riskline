@@ -36,6 +36,8 @@ function setup() {
     const t: Tick = { symbol, price, open24h, time: clock }
     return app.tick(t)
   }
+  /** Let time pass without a price update, e.g. so a fresh card starts accepting taps. */
+  const wait = (ms: number) => { clock += ms }
   const last = () => pages[pages.length - 1]
   const textOf = (name: string) => (last().boxes.find((b) => b.name === name) as TextBox | undefined)?.text ?? ''
   const pick = async (label: RegExp) => {
@@ -45,7 +47,7 @@ function setup() {
     assert.ok(at >= 0, `no action matching ${label} in ${JSON.stringify(list.items)}`)
     await app.input({ select: at })
   }
-  return { app, broker, alerts, tick, last, textOf, pick, timers, exits: () => exits }
+  return { app, broker, alerts, tick, wait, last, textOf, pick, timers, exits: () => exits }
 }
 
 function assertFits(page: Page): void {
@@ -113,6 +115,10 @@ test('a full session: enter with a stop, alert, move stop, take half, get stoppe
   assert.match(s.textOf('title'), /Crossed above 60,600\.0/)
   assert.match(s.textOf('offer'), /^Tap: stop to break-even \(60,000\.0\)$/)
   await s.app.input('tap')
+  assert.equal(s.last().key, 'card', 'a tap in the first moments of a card is ignored')
+  assert.equal((await s.broker.account()).positions[0].stop, 59_400)
+  s.wait(1_000)
+  await s.app.input('tap')
   assert.match(s.textOf('body'), /BTC is risk-free/)
   account = await s.broker.account()
   assert.equal(account.positions[0].stop, 60_000)
@@ -141,6 +147,7 @@ test('a full session: enter with a stop, alert, move stop, take half, get stoppe
   assert.equal(s.last().key, 'card')
   assert.match(s.textOf('tag'), /STOPPED OUT/)
   assertFits(s.last())
+  s.wait(1_000)
   await s.app.input('tap')
   assert.equal(s.last().key, 'session')
   assert.match(s.textOf('head'), /BTC {3}flat/)

@@ -58,25 +58,29 @@ export class Alerts {
 export type Proximity = 'stop-near' | 'target-near'
 
 /**
- * Warn once when the price comes within `band` of the stop or the target.
- * `seen` remembers what was already announced; a key clears when the price
- * moves back out to twice the band, so the warning can fire again later.
+ * Warn when the price comes close to the stop or the target.
+ *
+ * "Close" scales with the trade: a quarter of the planned distance, capped at
+ * `cap` of the price, so a tight stop does not warn the moment it is placed.
+ * A warning has to be armed first by the price being at least twice that far
+ * away, and it disarms when it fires, so each approach is announced once.
  */
-export function proximity(view: View, seen: Set<string>, band = 0.0025): Proximity | null {
-  if (!view.held) return null
-  const checks: [Proximity, number | undefined][] = [
-    ['stop-near', view.toStop !== undefined ? -view.toStop : undefined],
-    ['target-near', view.toTarget],
+export function proximity(view: View, armed: Set<string>, cap = 0.0025): Proximity | null {
+  if (!view.held || !(view.price > 0)) return null
+  const planned = (level: number | undefined) => (level === undefined ? cap : Math.abs(level - view.entry) / view.price)
+  const checks: [Proximity, number | undefined, number][] = [
+    ['stop-near', view.toStop !== undefined ? -view.toStop : undefined, Math.min(cap, planned(view.stop) * 0.25 || cap)],
+    ['target-near', view.toTarget, Math.min(cap, planned(view.target) * 0.25 || cap)],
   ]
-  for (const [kind, distance] of checks) {
+  for (const [kind, distance, band] of checks) {
     const key = `${view.symbol}:${kind}`
     if (distance === undefined) {
-      seen.delete(key)
+      armed.delete(key)
       continue
     }
-    if (distance > band * 2) seen.delete(key)
-    if (distance >= 0 && distance <= band && !seen.has(key)) {
-      seen.add(key)
+    if (distance > band * 2) armed.add(key)
+    else if (distance >= 0 && distance <= band && armed.has(key)) {
+      armed.delete(key)
       return kind
     }
   }

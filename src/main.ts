@@ -84,6 +84,29 @@ async function connect(): Promise<{ bridge: Host; preview: boolean }> {
 }
 
 const saved = load()
+
+// Optional start-up overrides for repeatable test and demo runs, e.g.
+//   ?reset=1&watch=BTCUSDT,ETHUSDT&sizes=100,500&stop=0.05&target=0.1&alert=0.03   (percentages)
+{
+  const query = new URLSearchParams(location.search)
+  const percent = (name: string): number | null => {
+    const value = Number(query.get(name))
+    return query.has(name) && value > 0 && value < 100 ? value / 100 : null
+  }
+  if (query.get('reset') === '1') {
+    saved.paper = freshPaperState()
+    saved.alerts = []
+  }
+  const watchList = (query.get('watch') ?? '').toUpperCase().split(',').filter((symbol) => /^[A-Z0-9]{5,16}$/.test(symbol))
+  if (watchList.length) saved.watch = watchList
+  const sizes = (query.get('sizes') ?? '').split(',').map(Number).filter((n) => n >= 5)
+  if (sizes.length) saved.settings.sizes = sizes.slice(0, 3)
+  saved.settings.stopPct = percent('stop') ?? saved.settings.stopPct
+  saved.settings.targetPct = percent('target') ?? saved.settings.targetPct
+  saved.settings.trailPct = percent('trail') ?? saved.settings.trailPct
+  saved.settings.alertPct = percent('alert') ?? saved.settings.alertPct
+}
+
 const rules = new Map<string, SymbolRules>()
 const rulesFor = (symbol: string): SymbolRules => rules.get(symbol) ?? DEFAULT_RULES(symbol)
 

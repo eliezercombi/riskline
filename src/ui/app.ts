@@ -74,6 +74,8 @@ export class App {
   queue: Queued[] = []
   alertsPaused = false
   busy = false
+  /** When the card on screen took over. Taps right after that are ignored: see `input`. */
+  private cardAt = 0
   private near = new Set<string>()
   private token = 0
   private deps: Deps
@@ -209,9 +211,14 @@ export class App {
   }
 
   private push(item: Queued): void {
-    // Never interrupt a decision in progress; the card waits its turn.
-    if (this.screen.kind === 'session' || this.screen.kind === 'result') this.screen = { kind: 'card', item }
+    // Never interrupt a decision or a result; the card waits its turn.
+    if (this.screen.kind === 'session') this.show(item)
     else this.queue.push(item)
+  }
+
+  private show(item: Queued): void {
+    this.screen = { kind: 'card', item }
+    this.cardAt = this.now()
   }
 
   /* ---------- gestures ---------- */
@@ -276,6 +283,9 @@ export class App {
         break
 
       case 'card':
+        // A card can replace the screen at any moment. A tap that was already on its way
+        // to the previous screen must not trigger the card's action.
+        if (input === 'tap' && this.now() - this.cardAt < TAP_GUARD_MS) return
         if (input === 'tap' && screen.item.actionId) return this.execute(screen.item.symbol, screen.item.actionId)
         if (input === 'tap' && screen.item.opensActions) {
           this.selected = screen.item.symbol
@@ -416,8 +426,12 @@ export class App {
 
   private next(): void {
     const item = this.queue.shift()
-    this.screen = item ? { kind: 'card', item } : { kind: 'session' }
+    if (item) this.show(item)
+    else this.screen = { kind: 'session' }
   }
 }
+
+/** How long a freshly shown card ignores taps. */
+export const TAP_GUARD_MS = 800
 
 const lower = (label: string): string => label.charAt(0).toLowerCase() + label.slice(1)
