@@ -2,6 +2,13 @@
 // arrives pre-funded with many assets, so "position" cannot mean "balance":
 // it means the quantity Riskline itself opened, with its average entry.
 
+/**
+ * @typedef {{ symbol: string, qty: number, entry: number, openedAt: number, orders: number[], stop?: number, target?: number, riskPerUnit?: number }} Held
+ * @typedef {{ id: string, symbol: string, side: 'buy' | 'sell', qty: number, price: number, pnl?: number, reason: string, time: number }} LedgerEvent
+ * @typedef {{ positions: Record<string, Held>, realized: number, events: LedgerEvent[], seq: number }} Ledger
+ */
+
+/** @returns {Ledger} */
 export const emptyLedger = () => ({ positions: {}, realized: 0, events: [], seq: 0 })
 
 export function recordBuy(ledger, symbol, qty, price, now = Date.now()) {
