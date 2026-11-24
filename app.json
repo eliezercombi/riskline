@@ -8,14 +8,22 @@
   "permissions": [
     {
       "name": "network",
-      "desc": "Reads live prices, 24-hour history and trading increments from Binance public market data. No account or key is used.",
+      "desc": "Reads live prices from Binance public market data. If you turn on voice, sends the recorded command to the speech service you chose.",
       "whitelist": [
         "https://data-api.binance.vision",
         "https://api.binance.com",
         "wss://data-stream.binance.vision",
-        "wss://stream.binance.com:9443"
+        "wss://stream.binance.com:9443",
+        "https://api.openai.com",
+        "https://api.groq.com"
       ]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Hold the touchpad to speak a command such as 'sell half'. Audio is recorded only while you hold."
     }
   ],
-  "supported_languages": ["en"]
+  "supported_languages": [
+    "en"
+  ]
 }

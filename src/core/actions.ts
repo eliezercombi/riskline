@@ -8,7 +8,7 @@ import * as f from './format.ts'
 import type { Alerts } from './alerts.ts'
 import type { View } from './session.ts'
 import type { Broker, SymbolRules } from './types.ts'
-import { roundTo } from './types.ts'
+import { roundDown, roundTo } from './types.ts'
 
 export interface Settings {
   /** Quote amounts offered for entries. */
@@ -67,7 +67,8 @@ export function actionsFor(view: View, ctx: Context): Action[] {
       })
     }
 
-    const half = view.qty / 2
+    // Shown exactly as it will be sent: half the position, rounded down to the lot size.
+    const half = roundDown(view.qty / 2, rules.step)
     if (half * px >= rules.minNotional && half >= rules.step) {
       out.push({
         id: 'half',

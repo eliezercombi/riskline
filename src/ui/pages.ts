@@ -185,6 +185,20 @@ export function cardPage(card: Card, waiting: number, chrome: Chrome, measure: M
   }
 }
 
+export function listeningPage(hint: string, chrome: Chrome): Page {
+  return {
+    key: 'listening',
+    menu: menu(chrome),
+    boxes: [
+      captureLayer(),
+      text(1, 'title', 36, 1, 'Listening...', 4),
+      text(2, 'body', 78, 3, `Say, for example:
+${hint}`, 2),
+      text(3, 'hint', 258, 1, 'release: done    double-tap: cancel', 1),
+    ],
+  }
+}
+
 export function emptyPage(message: string, chrome: Chrome): Page {
   return {
     key: 'empty',

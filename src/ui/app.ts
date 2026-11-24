@@ -9,12 +9,22 @@ import type { Action, Settings } from '../core/actions.ts'
 import { proximity } from '../core/alerts.ts'
 import type { Alerts } from '../core/alerts.ts'
 import { order, viewOf } from '../core/session.ts'
+import { HINT, parseCommand } from '../core/voice.ts'
 import type { View } from '../core/session.ts'
 import type { Account, Broker, Fill, SymbolRules, Tick } from '../core/types.ts'
-import { MENU_ALERTS, MENU_FLATTEN, actionsPage, cardPage, confirmPage, emptyPage, resultPage, sessionPage } from './pages.ts'
+import { roundTo } from '../core/types.ts'
+import { MENU_ALERTS, MENU_FLATTEN, actionsPage, cardPage, confirmPage, emptyPage, listeningPage, resultPage, sessionPage } from './pages.ts'
 import type { Card, Chrome, Page } from './pages.ts'
 
-export type Input = 'tap' | 'double' | 'up' | 'down' | { select: number } | { menu: number }
+export type Input = 'tap' | 'double' | 'up' | 'down' | 'hold' | 'release' | { select: number } | { menu: number }
+
+/** Push-to-talk, provided by the host: start capturing on hold, return the transcript on release. */
+export interface Voice {
+  available: () => boolean
+  start: () => void
+  stop: () => Promise<string>
+  cancel: () => void
+}
 
 interface Queued {
   card: Card
@@ -29,6 +39,8 @@ type Screen =
   | { kind: 'session' }
   | { kind: 'actions'; symbol: string; ids: string[] }
   | { kind: 'confirm'; symbol: string; actionId: string; lines: string[] }
+  | { kind: 'custom'; lines: string[]; run: () => Promise<string> }
+  | { kind: 'listening' }
   | { kind: 'flatten' }
   | { kind: 'result'; ok: boolean; lines: string[]; token: number }
   | { kind: 'card'; item: Queued }
@@ -46,6 +58,7 @@ export interface Deps {
   later?: (fn: () => void, ms: number) => void
   /** Called after anything worth saving changed (alerts, pause flag). */
   changed?: () => void
+  voice?: Voice
 }
 
 type Ticking = Broker & { tick?: (symbol: string, price: number) => Promise<Fill[]> }
@@ -107,7 +120,10 @@ export class App {
         return actionsPage(view, screen.ids.map((id) => byId.get(id)?.label ?? '(no longer available)'), chrome)
       }
       case 'confirm':
+      case 'custom':
         return confirmPage(screen.lines, chrome)
+      case 'listening':
+        return listeningPage(HINT, chrome)
       case 'flatten': {
         const total = views.filter((v) => v.held).reduce((sum, v) => sum + v.pnl, 0)
         return confirmPage(['Flatten everything?', `Sell ${this.account.positions.length} position(s) at market`, `Open result ${f.signed(total)} USDT`], chrome)
@@ -210,6 +226,24 @@ export class App {
         if (input === 'double') return this.deps.exit()
         if (input === 'down' || input === 'up') this.step(input === 'down' ? 1 : -1)
         else if (input === 'tap') this.openActions(this.selected)
+        else if (input === 'hold') {
+          if (!this.deps.voice?.available()) return this.finish(false, ['Voice is not set up yet.', 'Add a speech service on your phone,', 'or type a command there.'])
+          this.deps.voice.start()
+          this.screen = { kind: 'listening' }
+        }
+        break
+
+      case 'listening':
+        if (input === 'release') return this.heard()
+        if (input === 'double') {
+          this.deps.voice?.cancel()
+          this.screen = { kind: 'session' }
+        }
+        break
+
+      case 'custom':
+        if (input === 'tap') return this.guarded(screen.run)
+        if (input === 'double') this.screen = { kind: 'session' }
         break
 
       case 'actions':
@@ -249,6 +283,68 @@ export class App {
         } else this.next()
         break
     }
+    this.render()
+  }
+
+  private async heard(): Promise<void> {
+    this.busy = true
+    let text = ''
+    try {
+      text = await (this.deps.voice as Voice).stop()
+    } catch (error) {
+      this.busy = false
+      return this.finish(false, [error instanceof Error ? error.message : String(error), 'Nothing was sent.'])
+    }
+    this.busy = false
+    return this.command(text)
+  }
+
+  /**
+   * Run a spoken or typed command. It never sends an order: at most it opens
+   * the same confirmation screen a tap would, and the user still has to tap.
+   */
+  async command(spoken: string): Promise<void> {
+    if (this.busy) return
+    const text = spoken.trim()
+    const views = this.views()
+    const parsed = parseCommand(text, { symbols: views.map((v) => v.symbol), sizes: this.deps.settings.sizes })
+    if (!parsed) return this.finish(false, [text ? `Heard "${text}"` : 'Heard nothing.', 'Try: sell half, close, buy 500,', 'stop to break-even, alert 62000'])
+    this.note = `Heard "${text}"`
+
+    if (parsed.kind === 'select') this.selected = parsed.symbol
+    if (parsed.kind === 'select' || parsed.kind === 'alerts') {
+      if (parsed.kind === 'alerts' && parsed.paused !== this.alertsPaused) await this.menu(MENU_ALERTS)
+      this.screen = { kind: 'session' }
+      return this.render()
+    }
+    if (parsed.kind === 'flatten') {
+      if (!this.account.positions.length) return this.finish(false, ['Nothing to flatten.', 'There are no open positions.'])
+      this.screen = { kind: 'flatten' }
+      return this.render()
+    }
+
+    const view = this.view()
+    if (!view || view.stale) return this.finish(false, ['Waiting for a price.', 'Nothing was sent.'])
+
+    if (parsed.kind === 'alert') {
+      const rules = this.deps.rulesFor(view.symbol)
+      const level = roundTo(parsed.level, rules.tick)
+      const kind = parsed.side === 'cross' ? (level > view.price ? 'above' : 'below') : parsed.side
+      if ((kind === 'above') !== (level > view.price)) return this.finish(false, [`${view.base} is already ${kind} ${f.price(level)}.`, 'No alert was set.'])
+      this.screen = {
+        kind: 'custom',
+        lines: ['Set an alert?', `${view.base} ${kind} ${f.price(level)}`, `${f.pct(level / view.price - 1)} from here. It fires once.`],
+        run: async () => {
+          this.deps.alerts.add(view.symbol, kind, level, this.now())
+          return `Alert set: ${view.base} ${kind} ${f.price(level)}`
+        },
+      }
+      return this.render()
+    }
+
+    const action = this.resolve(view.symbol, parsed.id)
+    if (!action) return this.finish(false, [`"${text}" does not apply to ${view.base} right now.`, 'Nothing was sent.'])
+    this.screen = { kind: 'confirm', symbol: view.symbol, actionId: action.id, lines: action.confirm }
     this.render()
   }
 

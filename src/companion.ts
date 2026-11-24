@@ -5,6 +5,8 @@
 import * as f from './core/format.ts'
 import type { Settings } from './core/actions.ts'
 import type { Alerts } from './core/alerts.ts'
+import { HINT } from './core/voice.ts'
+import type { SttConfig } from './core/voice.ts'
 import type { App, Input } from './ui/app.ts'
 import { H, W } from './ui/pages.ts'
 import type { Page } from './ui/pages.ts'
@@ -20,7 +22,11 @@ export interface CompanionApi {
   setWatch: (symbols: string[]) => void
   saveSettings: () => void
   resetPaper: () => void
-  bridge: { url: string; token: string } | null
+  stt: () => SttConfig | null
+  setStt: (config: SttConfig | null) => void
+  /** Run a typed command through the same grammar as voice. */
+  command: (text: string) => void
+  bridge: () => { url: string; token: string } | null
   setBridge: (bridge: { url: string; token: string } | null) => void
   input: (input: Input) => void
 }
@@ -55,6 +61,8 @@ export function mountCompanion(root: HTMLElement, api: CompanionApi): { update: 
     const held = views.filter((v) => v.held)
     const open = held.reduce((sum, v) => sum + v.pnl, 0)
     const s = api.stats()
+    const stt = api.stt()
+    const bridge = api.bridge()
 
     root.innerHTML = `
       <header>
@@ -96,6 +104,18 @@ export function mountCompanion(root: HTMLElement, api: CompanionApi): { update: 
       </section>
 
       <section>
+        <h2>Commands</h2>
+        <form data-form="command"><input name="text" placeholder="${esc(HINT.split(' · ')[0])}" autocomplete="off" maxlength="80"><button>Run</button></form>
+        <p class="fine">The same phrases work by voice: hold the touchpad, speak, release. Try: ${esc(HINT)}. A command only opens the confirmation on the glasses; nothing is sent until you tap.</p>
+        <form data-form="stt" class="fields stack">
+          <label>Speech-to-text URL (OpenAI-compatible)<input name="url" inputmode="url" placeholder="https://api.openai.com/v1/audio/transcriptions" value="${esc(stt?.url ?? '')}" autocomplete="off"></label>
+          <label>Model<input name="model" placeholder="whisper-1" value="${esc(stt?.model ?? '')}" autocomplete="off"></label>
+          <label>API key<input name="key" type="password" placeholder="stays on this phone" value="${esc(stt?.key ?? '')}" autocomplete="off"></label>
+          <button>${stt ? 'Update voice' : 'Turn on voice'}</button>
+        </form>
+      </section>
+
+      <section>
         <h2>Alerts</h2>
         ${api.alerts.rules.length ? `<ul class="rows">${api.alerts.rules.map((rule) => `<li>${esc(rule.symbol)} ${esc(rule.kind)} ${f.price(rule.level)}<button data-unalert="${esc(rule.id)}">Remove</button></li>`).join('')}</ul>` : '<p class="fine">None armed. Set them from the glasses: tap, then “Alert above” or “Alert below”.</p>'}
       </section>
@@ -104,12 +124,12 @@ export function mountCompanion(root: HTMLElement, api: CompanionApi): { update: 
         <h2>Account</h2>
         <div class="pad">
           <button data-flatten ${held.length ? '' : 'disabled'}>Flatten all</button>
-          ${api.bridge ? '<button data-paper>Back to paper account</button>' : '<button data-reset>Reset paper account</button>'}
+          ${bridge ? '<button data-paper>Back to paper account</button>' : '<button data-reset>Reset paper account</button>'}
         </div>
         <form data-form="bridge" class="fields stack">
-          <label>Testnet bridge URL<input name="url" inputmode="url" placeholder="http://localhost:8787" value="${esc(api.bridge?.url ?? '')}" autocomplete="off"></label>
-          <label>Bridge token<input name="token" type="password" placeholder="printed when the bridge starts" value="${esc(api.bridge?.token ?? '')}" autocomplete="off"></label>
-          <button>${api.bridge ? 'Reconnect' : 'Use Binance Spot Testnet'}</button>
+          <label>Testnet bridge URL<input name="url" inputmode="url" placeholder="http://localhost:8787" value="${esc(bridge?.url ?? '')}" autocomplete="off"></label>
+          <label>Bridge token<input name="token" type="password" placeholder="printed when the bridge starts" value="${esc(bridge?.token ?? '')}" autocomplete="off"></label>
+          <button>${bridge ? 'Reconnect' : 'Use Binance Spot Testnet'}</button>
         </form>
         <p class="fine">Paper mode needs nothing. To place real testnet orders, run the bridge from this repository with your own Spot Testnet key; the key stays on that machine.</p>
         <p class="fine">Display traffic this session: ${s.creates} page start, ${s.rebuilds} rebuilds, ${s.upgrades} text updates, ${s.failures} failed calls.</p>
@@ -148,6 +168,15 @@ export function mountCompanion(root: HTMLElement, api: CompanionApi): { update: 
     if (form.dataset.form === 'watch') {
       const symbol = String(values.get('symbol') ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '')
       if (symbol.length >= 5 && !api.app.watch.includes(symbol)) api.setWatch([...api.app.watch, symbol])
+    }
+    if (form.dataset.form === 'command') {
+      const text = String(values.get('text') ?? '').trim()
+      if (text) api.command(text)
+    }
+    if (form.dataset.form === 'stt') {
+      const url = String(values.get('url') ?? '').trim()
+      if (!url) api.setStt(null)
+      else if (/^https?:\/\/\S+$/.test(url)) api.setStt({ url, model: String(values.get('model') ?? '').trim() || 'whisper-1', key: String(values.get('key') ?? '').trim() })
     }
     if (form.dataset.form === 'bridge') {
       const url = String(values.get('url') ?? '').trim()

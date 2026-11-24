@@ -63,6 +63,8 @@ export function translate(event: HubEvent): Input | Lifecycle | null {
       case EVENT.SCROLL_BOTTOM: return 'down'
       case EVENT.FOREGROUND_ENTER: return 'foreground'
       case EVENT.FOREGROUND_EXIT: return 'background'
+      case EVENT.LONG_PRESS: return 'hold'
+      case EVENT.LONG_PRESS_RELEASE: return 'release'
       case EVENT.ABNORMAL_EXIT:
       case EVENT.SYSTEM_EXIT: return 'exit'
       default: return null

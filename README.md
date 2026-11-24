@@ -26,6 +26,7 @@ tap: actions    swipe: next    double-tap: exit
 | An action | Tap to confirm, double-tap to cancel | The order goes out; the result shows for two seconds and gets out of the way |
 | An alert card: "Crossed above 61,862", "Near stop", "Near target" | Tap | The one protective action that fits, spelled out on the card before you tap. Swipe to dismiss |
 | The system menu (tap, then hold) | Pick "Flatten all" or "Pause alerts" | Works from any screen |
+| Any position card | Hold, say "sell half", release | The same confirmation a tap would open. Speech never sends an order by itself |
 
 ## Three rules the app keeps
 
@@ -49,6 +50,12 @@ npm run simulate
 
 The app starts with a paper account of 10,000 USDT that fills at live Binance prices. Prices, 24-hour history and trading increments come from Binance public market data; no account or key is involved.
 
+## Voice
+
+Hold the touchpad, speak, release: "sell half", "stop to break-even", "close", "buy 500", "alert above 62 thousand", "show ethereum", "flatten". The glasses record only while you hold. The phrase goes through a small fixed grammar, not a language model, so it can only ever resolve to one of the actions the menu already offers, and it still lands on the confirmation screen.
+
+Speech-to-text is bring-your-own: enter any OpenAI-compatible transcription endpoint and your key on the phone page. Without one, the same commands can be typed there.
+
 ## Real orders on the Binance Spot Testnet
 
 Paper mode needs nothing. To send real orders to the [Spot Testnet](https://testnet.binance.vision), run the bridge with your own testnet key:
@@ -62,12 +69,12 @@ It prints a token. Enter the bridge address and the token on the phone page unde
 ## How it is built
 
 ```
-src/core      pure logic: paper venue, positions, R, alerts, the action catalogue
+src/core      pure logic: paper venue, positions, R, alerts, the action catalogue, the command grammar
 src/ui        pages (576x288 layouts), controller, display adapter, event mapping
 src/market    Binance public data: mini-ticker stream with REST fallback
 src/companion.ts  the phone page: display mirror, watchlist, defaults, venue
 server/       optional testnet bridge, Node built-ins only
-test/         35 tests, run with `npm test`
+test/         42 tests, run with `npm test`
 ```
 
 - **Layouts are data.** A page is a list of boxes; the display adapter turns it into SDK calls. The first page uses `createStartUpPageContainer`, a new layout uses `rebuildPageContainer`, and a price tick only sends `textContainerUpgrade` for the lines that changed. Calls are serialised, bursts collapse to the newest page, and each call has a timeout.
@@ -78,11 +85,11 @@ test/         35 tests, run with `npm test`
 
 ## What has been tested, and how
 
-- Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing and the bridge protocol: 35 automated tests.
+- Logic, layouts (box limits, one input target, text inside its box), display traffic, event mapping, request signing, the bridge protocol and the command grammar: 42 automated tests.
 - The whole app in a desktop browser against live Binance data, in preview mode.
 - TODO before submission: simulator run and device run are recorded here once done.
 
-Not done: the bridge has not been run against the exchange yet, and nothing has been tested on physical glasses.
+Not done: the bridge has not been run against the exchange yet, voice has been exercised with typed and mocked transcripts but not with a live speech service, and nothing has been tested on physical glasses.
 
 ## Limits
 

@@ -14,9 +14,11 @@ import type { PaperState } from './core/paper.ts'
 import { RemoteBroker } from './core/remote.ts'
 import { DEFAULT_RULES } from './core/types.ts'
 import type { Broker, SymbolRules } from './core/types.ts'
+import { transcribe, wavFromPcm } from './core/voice.ts'
+import type { SttConfig } from './core/voice.ts'
 import { BinanceFeed } from './market/binance.ts'
 import { App } from './ui/app.ts'
-import type { Input } from './ui/app.ts'
+import type { Input, Voice } from './ui/app.ts'
 import { Display } from './ui/display.ts'
 import type { Bridge } from './ui/display.ts'
 import { translate } from './ui/input.ts'
@@ -35,10 +37,12 @@ interface Saved {
   alertsPaused: boolean
   /** Set when orders go to the testnet bridge instead of the built-in paper account. */
   bridge: { url: string; token: string } | null
+  /** Speech-to-text endpoint for push-to-talk. The key is the user's own and stays on their phone. */
+  stt: SttConfig | null
 }
 
 function load(): Saved {
-  const fresh: Saved = { watch: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], settings: { ...DEFAULT_SETTINGS }, paper: freshPaperState(), alerts: [], alertsPaused: false, bridge: null }
+  const fresh: Saved = { watch: ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'], settings: { ...DEFAULT_SETTINGS }, paper: freshPaperState(), alerts: [], alertsPaused: false, bridge: null, stt: null }
   try {
     const raw = JSON.parse(localStorage.getItem(STORE) ?? 'null') as Partial<Saved> | null
     if (!raw) return fresh
@@ -49,14 +53,21 @@ function load(): Saved {
       alerts: Array.isArray(raw.alerts) ? raw.alerts : [],
       alertsPaused: Boolean(raw.alertsPaused),
       bridge: raw.bridge && raw.bridge.url && raw.bridge.token ? { url: String(raw.bridge.url), token: String(raw.bridge.token) } : null,
+      stt: raw.stt && raw.stt.url ? { url: String(raw.stt.url), key: String(raw.stt.key ?? ''), model: String(raw.stt.model || 'whisper-1') } : null,
     }
   } catch {
     return fresh
   }
 }
 
+type Host = Bridge & {
+  onEvenHubEvent: (cb: (event: HubEvent) => void) => () => void
+  audioControl: (isOpen: boolean) => Promise<boolean>
+}
+
 /** Stand-in used in a plain browser tab, where no glasses host exists. */
-const previewBridge: Bridge & { onEvenHubEvent: (cb: (event: HubEvent) => void) => () => void } = {
+const previewBridge: Host = {
+  audioControl: async () => true,
   createStartUpPageContainer: async () => 0,
   rebuildPageContainer: async () => true,
   textContainerUpgrade: async () => true,
@@ -64,9 +75,9 @@ const previewBridge: Bridge & { onEvenHubEvent: (cb: (event: HubEvent) => void) 
   onEvenHubEvent: () => () => {},
 }
 
-async function connect(): Promise<{ bridge: typeof previewBridge; preview: boolean }> {
+async function connect(): Promise<{ bridge: Host; preview: boolean }> {
   const found = await Promise.race([
-    waitForEvenAppBridge().then((bridge) => bridge as unknown as typeof previewBridge),
+    waitForEvenAppBridge().then((bridge) => bridge as unknown as Host),
     new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500)),
   ])
   return found ? { bridge: found, preview: false } : { bridge: previewBridge, preview: true }
@@ -91,7 +102,7 @@ let saveTimer: ReturnType<typeof setTimeout> | undefined
 function save(): void {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(() => {
-    const state: Saved = { watch: app.watch, settings: saved.settings, paper: paper?.state ?? saved.paper, alerts: alerts.rules, alertsPaused: app.alertsPaused, bridge: saved.bridge }
+    const state: Saved = { watch: app.watch, settings: saved.settings, paper: paper?.state ?? saved.paper, alerts: alerts.rules, alertsPaused: app.alertsPaused, bridge: saved.bridge, stt: saved.stt }
     try {
       localStorage.setItem(STORE, JSON.stringify(state))
     } catch (error) {
@@ -100,8 +111,31 @@ function save(): void {
   }, 300)
 }
 
+// Push-to-talk: PCM frames from the glasses are collected while the touchpad is held.
+const pcm: Uint8Array[] = []
+let capturing = false
+const voice: Voice = {
+  available: () => Boolean(saved.stt?.url),
+  start: () => {
+    pcm.length = 0
+    capturing = true
+    void bridge.audioControl(true).catch((error) => log(`microphone: ${String(error)}`))
+  },
+  stop: async () => {
+    capturing = false
+    await bridge.audioControl(false).catch(() => false)
+    if (!pcm.length || !saved.stt) return ''
+    return transcribe(wavFromPcm(pcm), saved.stt)
+  },
+  cancel: () => {
+    capturing = false
+    void bridge.audioControl(false).catch(() => false)
+  },
+}
+
 const app = new App(saved.watch, {
   broker,
+  voice,
   alerts,
   settings: saved.settings,
   measure: getTextWidth,
@@ -155,6 +189,11 @@ async function refreshHistory(): Promise<void> {
 const handle = (input: Input): void => void app.input(input).catch((error) => log(`input failed: ${String(error)}`))
 
 bridge.onEvenHubEvent((event) => {
+  const audio = (event.audioEvent as { audioPcm?: ArrayLike<number> } | undefined)?.audioPcm
+  if (audio) {
+    if (capturing) pcm.push(Uint8Array.from(audio))
+    return
+  }
   const what = translate(event)
   if (what === null) return
   if (what === 'foreground') return app.render()
@@ -186,7 +225,13 @@ companion = mountCompanion(document.getElementById('app') as HTMLElement, {
     save()
     void app.refresh().then(() => app.render())
   },
-  bridge: saved.bridge,
+  stt: () => saved.stt,
+  setStt: (next) => {
+    saved.stt = next
+    save()
+  },
+  command: (text) => void app.command(text).catch((error) => log(`command failed: ${String(error)}`)),
+  bridge: () => saved.bridge,
   setBridge: (next) => {
     saved.bridge = next
     save()
